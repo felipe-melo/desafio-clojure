@@ -113,8 +113,7 @@
                           :purchase/card [:card/id (:card/id card)]]]))
 
 (defn create-client! [conn client card] 
-  (datomic/transact conn [client])
-  (datomic/transact conn [card])
+  (datomic/transact conn [client card])
   (link-card-to-user! conn client card))
 
 (defn create-purchase! [conn purchase card category]
@@ -141,18 +140,24 @@
 
 (defn top-purchases-count-client [conn]
   (->>
-   (count-clients-purchases conn)
-   (apply max-key :count)
-   ))
+   (datomic/q '[:find (count ?purchase) (pull ?client [*])
+               :where
+               [?card :card/id]
+               [?purchase :purchase/card ?card]
+               [?client :client/card ?card]
+               :keys count client]
+             (datomic/db conn))
+   (apply max-key :count)))
 
 (defn top-purchases-value-client [conn]
-  (->>
-   (datomic/q '[:find ?value (pull ?client [*])
-                :where
-                [?card :card/id]
-                [?purchase :purchase/card ?card]
-                [?purchase :purchase/value ?value]
-                [?client :client/card ?card]
-                :keys value client]
-              (datomic/db conn))
-   (apply max-key :value)))
+  (datomic/q '[:find ?value
+               (pull ?card [:card/id {:client/_card [*]}])
+               :where
+               [(q '[:find (max ?value)
+                     :where
+                     [?purchase :purchase/value ?value]]
+                   $) [[?value]]]
+               [?purchase :purchase/value ?value]
+               [?purchase :purchase/card ?card]
+               :keys value client]
+             (datomic/db conn)))
