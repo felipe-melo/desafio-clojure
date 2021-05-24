@@ -161,3 +161,13 @@
                [?purchase :purchase/card ?card]
                :keys value client]
              (datomic/db conn)))
+
+(defn client-without-purchase [conn]
+  (datomic/q '[:find (pull ?client [*])
+               :where
+               [?card :card/id]
+               (not-join [?card]
+                [?purchase :purchase/card ?card])
+               [?client :client/card ?card]
+               ]
+             (datomic/db conn)))

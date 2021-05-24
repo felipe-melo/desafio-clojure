@@ -56,5 +56,6 @@
 (pprint (db/todas-as-compras conn))
 (pprint (db/top-purchases-count-client conn))
 (pprint (db/top-purchases-value-client conn))
+(pprint (db/client-without-purchase conn))
 
 (db/apaga-banco!)
